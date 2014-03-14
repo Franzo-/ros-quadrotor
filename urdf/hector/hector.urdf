@@ -1,0 +1,181 @@
+<?xml version="1.0" ?>
+
+<robot name="quadrotor" xmlns:xacro="http://ros.org/wiki/xacro">
+  <link name="base_link">
+    <inertial>
+      <mass value="1.477"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.01152" ixy="0.0" ixz="0.0" iyy="0.01152" iyz="0.0" izz="0.0218"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/sherpa/LaserScan_workspaces/laser_ws/src/quadrotor/meshes/quadrotor/quadrotor_base.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="file:///home/sherpa/LaserScan_workspaces/laser_ws/src/quadrotor/meshes/quadrotor/quadrotor_base.stl"/>
+      </geometry>
+    </collision>
+  </link>
+
+	<!-- HOKUYO -->
+<!--
+  <joint name="laser0_joint" type="fixed">
+    <origin rpy="3.14159265359 0 0" xyz="0.0 0.0 -0.097"/>
+    <parent link="base_link"/>
+    <child link="laser0_frame"/>
+  </joint>
+
+  <link name="laser0_frame">
+    <inertial>
+      <mass value="0.270"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="2.632e-4" ixy="0" ixz="0" iyy="2.632e-4" iyz="0" izz="1.62e-4"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://quadrotor/meshes/hokuyo_utm30lx/hokuyo_utm_30lx.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 -0.0115"/>
+      <geometry>
+        <box size="0.058 0.058 0.087"/>
+-->        <!--<mesh filename="package://hector_sensors_description/meshes/hokuyo_utm30lx/hokuyo_utm_30lx.stl"/>-->
+<!--      </geometry>
+    </collision>
+  </link>
+-->
+
+  <joint name="laser_joint" type="revolute">
+    <!--<origin xyz=".15 0 .055" rpy="0 0 0" />-->
+    <origin xyz=".15 0 -0.097" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="laser_tilt" />
+    <axis xyz="0 1 0"/>
+    <limit effort="0.0" lower="-0.785400" upper="1.483530" velocity="4.0"/>
+    <dynamics damping="0.008" friction="0.0"/>
+  </joint>
+
+<!--
+	<link name="laser_tilt">
+      <visual name='laser_tilt_mount_link_geom_visual'>
+        <geometry>
+	  			<mesh filename="model://pr2/meshes/tilting_laser_v0/tilting_hokuyo.dae"/>
+        </geometry>
+      </visual>
+    <collision name="laser_collision">
+      <geometry>        	
+					<mesh filename="model://pr2/meshes/tilting_laser_v0/tilting_hokuyo_L.stl"/>
+      </geometry>  	
+    </collision>
+    <inertial>
+      
+			<mass value="0.00592000" />
+      <origin xyz="-0.001134 0.001667 -0.007067" rpy="0 0 0"/>
+      <inertia ixx="0.001296" ixy="0.000023" ixz="0.000037"
+        iyy="0.001086" iyz="0.000035"
+        izz="0.000895" />
+    </inertial>
+    
+  </link>
+-->
+
+	<link name="laser_tilt">
+      <visual name='laser_tilt_mount_link_geom_visual'>
+        <geometry>
+          <sphere radius="0.05"/>
+      </geometry>
+      </visual>
+    <collision name="laser_collision">
+      <geometry>        	
+					<sphere radius="0.05"/>
+      </geometry>  	
+    </collision>
+    <inertial>
+			<mass value="0.001" />
+      <origin xyz="-0.0 0.0 -0.0" rpy="0 0 0"/>
+      <inertia ixx="0.001296" ixy="0.000023" ixz="0.000037"
+        iyy="0.001086" iyz="0.000035"
+        izz="0.000895" />
+    </inertial>
+    
+  </link>
+
+
+  <!--<gazebo reference="laser0_frame">-->
+	<gazebo reference="laser_tilt">
+    <sensor name="laser0" type="ray">
+      <always_on>true</always_on>
+      <update_rate>40</update_rate>
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>true</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1081</samples>
+            <resolution>1</resolution>
+            <min_angle>-2.35619449019</min_angle>
+            <max_angle>2.35619449019</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.08</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </ray>
+      <plugin filename="libgazebo_ros_laser.so" name="gazebo_ros_laser0_controller">
+        <gaussianNoise>0.005</gaussianNoise>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>40</updateRate>
+        <topicName>scan</topicName>
+        <!--<frameName>laser0_frame</frameName>-->
+				<frameName>laser_tilt</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+<!-- Joint State Publisher per il tilter -->
+	<gazebo>
+		<plugin filename="libjoint_state_publisher.so" name="joint_state_publisher">
+		<jointName>laser_joint</jointName>
+		<updateRate>100.0</updateRate>
+		<alwaysOn>true</alwaysOn>
+		</plugin>
+	</gazebo>
+
+<!-- Joint controller per il tilter -->
+	<gazebo>
+		<plugin filename="libjoint_tilter_controller.so" name="joint_tilter_controller">
+		<jointName>laser_joint</jointName>
+		<updateRate>100.0</updateRate>
+		<alwaysOn>true</alwaysOn>
+		</plugin>
+	</gazebo>
+
+
+<!-- Controller per il movimento -->
+  <gazebo>
+    <plugin filename="libgazebo_ros_control.so" name="quadrotor_controller">
+      <controlPeriod>0.01</controlPeriod>
+      <robotSimType>hector_quadrotor_controller_gazebo/QuadrotorHardwareSim</robotSimType>
+    </plugin>
+  </gazebo>
+
+<!-- Consente la costruzione di TF relativa a world grazie alla pubblicazione di odometria -->
+	<gazebo>
+    <plugin filename="libgazebo_ros_p3d.so" name="quadrotor_groundtruth_sim">
+      <updateRate>100.0</updateRate>
+      <bodyName>base_link</bodyName>
+      <topicName>ground_truth/state</topicName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <frameName>world</frameName>
+    </plugin>
+  </gazebo>
+
+</robot>
