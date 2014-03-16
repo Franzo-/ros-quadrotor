@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>quadrotor</name>
+  <name>ros-quadrotor</name>
   <version>0.0.0</version>
   <description>The quadrotor package</description>
 
