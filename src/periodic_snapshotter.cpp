@@ -1,7 +1,7 @@
 /*********************************************************************
-* Software License Agreement (BSD License)
+* Software License Agreement (BSD License
+* Copyright (c) 2008, Willow Garage, Inc.)
 *
-* Copyright (c) 2008, Willow Garage, Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,13 @@
 * POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
+/*L'obiettivo è quello di inserire il namespace sensor_msgs, in modo da poter sfruttare anche 
+* le funzioni di tale namespace che ci permettono di trasformare una PointCloud in PointCloud2.
+* Ottenua la nuvola di punti in questo formato, non è necessaria una riconversione
+* in PointCloud, dal momento che anche il formato PointCloud2 può essere
+* visualizzato in rviz senza problemi.
+*/
+
 #include <cstdio>
 #include <ros/ros.h>
 
@@ -40,6 +47,8 @@
 
 // Messages
 #include "sensor_msgs/PointCloud.h"
+#include "sensor_msgs/PointCloud2.h"
+#include "sensor_msgs/point_cloud_conversion.h"
 
 
 /***
@@ -47,7 +56,11 @@
 * point_cloud_assembler every 4 seconds, and then publishes the
 * resulting data
 */
+// Il namespace sensor_msgs è inserito per utilizzare la funzione di conversione.
+
+//namespace sensor_msgs
 namespace laser_assembler
+
 {
 
 class PeriodicSnapshotter
@@ -58,7 +71,11 @@ public:
   PeriodicSnapshotter()
   {
     // Create a publisher for the clouds that we assemble
-    pub_ = n_.advertise<sensor_msgs::PointCloud> ("assembled_cloud", 1);
+    //pub_ = n_.advertise<sensor_msgs::PointCloud> ("assembled_cloud", 1);
+	
+	//Il nuovo publisher pubblica dei messaggi di tipo PointCloud2, non PointCloud semplici come quello commentato
+	//Nonostante i diversi tipi di messaggio, pubblica sempre sul topic "assembled_cloud".
+	pub_ = n_.advertise<sensor_msgs::PointCloud2> ("assembled_cloud", 1);
 
     // Create the service client for calling the assembler
     client_ = n_.serviceClient<AssembleScans>("assemble_scans");
@@ -74,9 +91,18 @@ public:
   {
 		// Populate our service request based on our timer callback times
     AssembleScans srv;
+	//Questa variabile sarà quella che verrà pubblicata e quella dove verrà inserita la PointCloud convertita.
+	sensor_msgs::PointCloud2 pointCloud2;
 
     // We don't want to build a cloud the first callback, since we we
     // don't have a start and end time yet
+	
+	/*Il campionamento di srv.request.begin è stato messo all'interno di questo pezzo di codice condizionto.
+	* Di fatto, il begin time viene campionato solo la prima volta, ovvero quando first_time viene settato a false
+	* Tale tempo non verrà più modificato.
+	* Se il tempo di tutti i nodi è sincornizzato (attenzione a questo!!), tutte le scansione verrano tenute in memoria
+	* fino al riempimento del roller buffer nel laser_assembler
+	*/
     if (first_time_)
     {
       first_time_ = false;
@@ -97,7 +123,16 @@ public:
     if (client_.call(srv))
     {
       ROS_INFO("Published Cloud with %u points", (uint32_t)(srv.response.cloud.points.size())) ;
-      pub_.publish(srv.response.cloud);
+      
+	  
+	  //Qui è inserita la conversione vera e propria.
+	 
+	  
+	  sensor_msgs::convertPointCloudToPointCloud2( srv.response.cloud, pointCloud2);
+	  
+	  //Non pubblico più il messaggio di risposta del servizio, ma quello ottenuto dalla conversione.
+	  //pub_.publish(srv.response.cloud);
+	  pub_.publish(pointCloud2);
     }
     else
     {
